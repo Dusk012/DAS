@@ -63,6 +63,6 @@ begin
   an_n  <= "1110";
 
   converter : bin2segs
-  port map ( en => '1', bin => digit, dp => '0', segs_n => segs_n ); 
+  port map ( en => '1', bin => digit, dp => '1', segs_n => segs_n ); 
     
 end syn;

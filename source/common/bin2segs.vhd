@@ -60,6 +60,6 @@ begin
       "0111000" when X"F",  -- F
       "1111111" when others;  -- todos apagados
       
-  segs_n <= not segs when en = '1' else (others => '1');
+  segs_n <= segs when en = '1' else (others => '1');
 
 end syn;
