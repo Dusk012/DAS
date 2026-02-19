@@ -57,6 +57,47 @@ package common is
       segs_n : out std_logic_vector(7 downto 0)   -- codigo 7-segmentos
     );
   end component;
+  
+  -- Sincronizador de entrada binaria
+  component synchronizer
+    generic (
+      STAGES  : natural;       -- número de biestables del sincronizador
+      XPOL    : std_logic      -- polaridad (valor en reposo) de la señal a sincronizar
+    );
+    port (
+      clk   : in  std_logic;   -- reloj del sistema
+      x     : in  std_logic;   -- entrada binaria a sincronizar
+      xSync : out std_logic    -- salida sincronizada que sigue a la entrada
+    );
+  end component;
+  
+  -- Eliminador de rebotes
+  component debouncer
+    generic(
+      FREQ_KHZ  : natural;    -- frecuencia de operacion en KHz
+      BOUNCE_MS : natural;    -- tiempo de rebote en ms
+      XPOL      : std_logic   -- polaridad (valor en reposo) de la señal a la que eliminar rebotes
+    );
+    port (
+      clk  : in  std_logic;   -- reloj del sistema
+      rst  : in  std_logic;   -- reset síncrono del sistema
+      x    : in  std_logic;   -- entrada binaria a la que deben eliminarse los rebotes
+      xDeb : out std_logic    -- salida que sigue a la entrada pero sin rebotes
+    );
+  end component;
+  
+  -- Detector de flancos
+  component edgeDetector
+    generic(
+      XPOL  : std_logic         -- polaridad (valor en reposo) de la señal
+    );
+    port (
+      clk   : in  std_logic;   -- reloj del sistema
+      x     : in  std_logic;   -- entrada binaria con flancos a detectar
+      xFall : out std_logic;   -- se activa durante 1 ciclo cada vez que detecta un flanco de bajada en x
+      xRise : out std_logic    -- se activa durante 1 ciclo cada vez que detecta un flanco de subida en x
+    );
+  end component;
  
 end package common;
 
