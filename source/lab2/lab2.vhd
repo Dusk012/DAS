@@ -132,7 +132,7 @@ begin
     port map (
       clk   => clk,
       rst   => clearSync,
-      ce    => '1',
+      ce    => startStopTFF,
       tc    => cycleCntTC,
       count => open
     );
@@ -142,7 +142,7 @@ begin
     port map (
       clk   => clk,
       rst   => clearSync,
-      ce    => cycleCntTC and startStopTFF,
+      ce    => cycleCntTC, 
       tc    => decCntTC,
       count => decCnt
     );
@@ -152,7 +152,7 @@ begin
     port map (
       clk   => clk,
       rst   => clearSync,
-      ce    => decCntTC and startStopTFF,
+      ce    => decCntTC, 
       tc    => secLowCntTC,
       count => secLowCnt
     );
@@ -162,7 +162,7 @@ begin
     port map (
       clk   => clk,
       rst   => clearSync,
-      ce    => secLowCntTC and startStopTFF,
+      ce    => secLowCntTC, 
       tc    => open,
       count => secHighCnt
     );

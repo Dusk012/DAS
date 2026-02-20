@@ -52,7 +52,7 @@ begin
       if rst='1' then    
         cs <= (others => '0');  
       elsif ce = '1' then  
-        if cs = to_unsigned(MAXVAL, cs'length) then
+        if cs = MAXVAL then
           cs <= (others => '0');  
         else 
           cs <= cs + 1;
@@ -63,6 +63,6 @@ begin
 
   count <= std_logic_vector(cs);
   
-  tc <= '1' when cs = to_unsigned(MAXVAL, cs'length) else '0';
+  tc <= '1' when cs = MAXVAL AND ce = '1' else '0';
 
 end syn;
