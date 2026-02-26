@@ -1,117 +1,102 @@
 -------------------------------------------------------------------
 --
 --  Fichero:
---    debouncer.vhd  07/09/2023
+--    debouncer.vhd  (modificado sin variables)
 --
 --    (c) J.M. Mendias
---    Dise�o Autom�tico de Sistemas
---    Facultad de Inform�tica. Universidad Complutense de Madrid
+--    Diseño Automático de Sistemas
+--    Facultad de Informática. Universidad Complutense de Madrid
 --
---  Prop�sito:
---    Elimina los rebotes de una l�nea binaria 
+--  Propósito:
+--    Elimina los rebotes de una línea binaria (sin variables)
 --
---  Notas de dise�o:
---    Orientado a FPGA Xilinx 7 series: reset sincrono y valor inicial
+--  Notas de diseño:
+--    Orientado a FPGA Xilinx 7 series: reset síncrono, con señales
 --
 -------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.common.all;
 
 entity debouncer is
   generic(
     FREQ_KHZ  : natural;    -- frecuencia de operacion en KHz
     BOUNCE_MS : natural;    -- tiempo de rebote en ms
-    XPOL      : std_logic   -- polaridad (valor en reposo) de la se�al a la que eliminar rebotes
+    XPOL      : std_logic   -- polaridad (valor en reposo) de la señal
   );
   port (
     clk  : in  std_logic;   -- reloj del sistema
-    rst  : in  std_logic;   -- reset s�ncrono del sistema
-    x    : in  std_logic;   -- entrada binaria a la que deben eliminarse los rebotes
-    xDeb : out std_logic    -- salida que sique a la entrada pero sin rebotes
+    rst  : in  std_logic;   -- reset síncrono
+    x    : in  std_logic;   -- entrada con rebotes
+    xDeb : out std_logic    -- salida sin rebotes
   );
 end debouncer;
 
 -------------------------------------------------------------------
 
-use work.common.all;
-
 architecture syn of debouncer is
-
-  signal startTimer, timerEnd: std_logic;
-  
+  constant CYCLES : natural := ms2cycles(FREQ_KHZ, BOUNCE_MS);
+  type states is (waitingKeyDown, keyDownDebouncing, waitingKeyUp, KeyUpDebouncing);
+  signal state, next_state : states;
+  signal count, next_count : natural range 0 to CYCLES-1;
+  signal timerEnd : std_logic;
 begin
+  -- Indicador de fin de temporización
+  timerEnd <= '1' when count = 0 else '0';
 
-  timer:
+  -- Registros de estado y contador
   process (clk)
-    constant CYCLES : natural := ms2cycles(FREQ_KHZ, BOUNCE_MS);
-    variable count  : natural range 0 to CYCLES-1 := 0;
   begin
-    if count=0 then
-      timerEnd <= '1';
-    else 
-      timerEnd <= '0';
-    end if;
     if rising_edge(clk) then
-      if rst='1' then
-        count := 0;
+      if rst = '1' then
+        state <= waitingKeyDown;
+        count <= 0;
       else
-        if startTimer='1' then
-          count := CYCLES-1;
-        elsif timerEnd='0' then
-          count := count - 1;
-        end if;
+        state <= next_state;
+        count <= next_count;
       end if;
     end if;
   end process;
-    
-  fsm:
-  process (clk, x)
-    type states is (waitingKeyDown, keyDownDebouncing, waitingKeyUp, KeyUpDebouncing); 
-    variable state: states := waitingKeyDown;
-  begin 
+
+  -- Lógica combinacional de la máquina de estados y contador
+  process (state, count, x, timerEnd)
+  begin
+    -- Valores por defecto
     xDeb <= XPOL;
-    startTimer <= '0';
+    next_state <= state;
+    next_count <= count;
+
     case state is
       when waitingKeyDown =>
-        if x=not XPOL then
-          startTimer <= '1';
+        if x /= XPOL then
+          next_count <= CYCLES - 1;
+          next_state <= keyDownDebouncing;
         end if;
+
       when keyDownDebouncing =>
         xDeb <= not XPOL;
+        if timerEnd = '1' then
+          next_state <= waitingKeyUp;
+          next_count <= 0;
+        else
+          next_count <= count - 1;
+        end if;
+
       when waitingKeyUp =>
         xDeb <= not XPOL;
-        if x=XPOL then
-          startTimer <= '1';
+        if x = XPOL then
+          next_count <= CYCLES - 1;
+          next_state <= KeyUpDebouncing;
         end if;
+
       when KeyUpDebouncing =>
-        null;
+        if timerEnd = '1' then
+          next_state <= waitingKeyDown;
+          next_count <= 0;
+        else
+          next_count <= count - 1;
+        end if;
     end case;
-
-    if rising_edge(clk) then
-      if rst='1' then
-        state := waitingKeyDown;
-      else     
-        case state is
-          when waitingKeyDown =>
-            if x=not XPOL then
-              state := keyDownDebouncing;
-            end if;
-          when keyDownDebouncing =>
-            if timerEnd='1' then
-              state := waitingKeyUp;
-            end if;
-          when waitingKeyUp =>
-            if x=XPOL then
-              state := KeyUpDebouncing;
-            end if;
-          when KeyUpDebouncing =>
-            if timerEnd='1' then
-              state := waitingKeyDown;
-            end if;
-        end case;
-      end if;
-    end if;
-  end process;  
-
+  end process;
 end syn;

@@ -1,17 +1,17 @@
 -------------------------------------------------------------------
 --
 --  Fichero:
---    synchronizer.vhd  07/09/2023
+--    synchronizer.vhd  (modificado sin variables)
 --
 --    (c) J.M. Mendias
---    Diseño Automático de Sistemas
---    Facultad de Informática. Universidad Complutense de Madrid
+--    DiseÃ±o AutomÃ¡tico de Sistemas
+--    Facultad de InformÃ¡tica. Universidad Complutense de Madrid
 --
---  Propósito:
---    Sincroniza una entrada binaria
+--  PropÃ³sito:
+--    Sincroniza una entrada binaria (versiÃ³n sin variables)
 --
---  Notas de diseño:
---    Orientado a FPGA Xilinx 7 series: no reset y valor inicial
+--  Notas de diseÃ±o:
+--    Orientado a FPGA Xilinx 7 series: no reset, valor inicial en seÃ±al
 --
 -------------------------------------------------------------------
 
@@ -20,8 +20,8 @@ use ieee.std_logic_1164.all;
 
 entity synchronizer is
   generic (
-    STAGES  : natural;       -- número de biestables del sincronizador
-    XPOL    : std_logic      -- polaridad (valor en reposo) de la señal a sincronizar
+    STAGES  : natural;       -- nÃºmero de biestables del sincronizador
+    XPOL    : std_logic      -- polaridad (valor en reposo) de la seÃ±al a sincronizar
   );
   port (
     clk   : in  std_logic;   -- reloj del sistema
@@ -32,19 +32,14 @@ end synchronizer;
 
 -------------------------------------------------------------------
 
-architecture syn of synchronizer is 
+architecture syn of synchronizer is
+  signal aux : std_logic_vector(STAGES-1 downto 0) := (others => XPOL);
 begin
-
+  xSync <= aux(STAGES-1);
   process (clk)
-    variable aux : std_logic_vector(STAGES-1 downto 0) := (others => XPOL); 
   begin
-    xSync <= aux(STAGES-1);		
     if rising_edge(clk) then
-      for i in STAGES-1 downto 1 loop
-        aux(i) := aux(i-1);
-      end loop;
-      aux(0) := x;
+      aux <= aux(aux'high-1 downto 0) & x;   -- desplazamiento a la izquierda
     end if;
   end process;
-
 end syn;
