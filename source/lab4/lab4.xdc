@@ -1,14 +1,14 @@
 #####################################################################
 ##
 ##  Fichero:
-##    lab3.xdc  12/09/2023
+##    lab4.xdc  12/09/2023
 ##
 ##    (c) J.M. Mendias
 ##    Diseño Automático de Sistemas
 ##    Facultad de Informática. Universidad Complutense de Madrid
 ##
 ##  Propósito:
-##    Configuración del laboratorio 3
+##    Configuración del laboratorio 4
 ##
 ##  Notas de diseño:
 ##
@@ -23,15 +23,24 @@ set_property CONFIG_VOLTAGE 3.3 [current_design];
 #
 # Reloj del sistema: 100 MHz
 #
-set_property -dict { PACKAGE_PIN W5 IOSTANDARD LVCMOS33 } [get_ports osc];
-create_clock -name sysClk -period 10.0 -waveform {0 5} [get_ports osc];
+set_property -dict { PACKAGE_PIN W5 IOSTANDARD LVCMOS33 } [get_ports clk];
+create_clock -name sysClk -period 10.0 -waveform {0 5} [get_ports clk];
 
 #
 # Pines conectados a los pulsadores
 #
-set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports coin];    # btnL
-set_property -dict { PACKAGE_PIN U18 IOSTANDARD LVCMOS33 } [get_ports go];      # btnC
-set_property -dict { PACKAGE_PIN T18 IOSTANDARD LVCMOS33 } [get_ports aRst];    # btnU
+set_property -dict { PACKAGE_PIN T18 IOSTANDARD LVCMOS33 } [get_ports rst];    # btnU
+
+#
+# Pines conectados al USB HID (PS/2)
+#
+set_property -dict { PACKAGE_PIN C17 IOSTANDARD LVCMOS33 PULLUP true } [get_ports ps2Clk];
+set_property -dict { PACKAGE_PIN B17 IOSTANDARD LVCMOS33 PULLUP true } [get_ports ps2Data];
+
+#
+# Pines conectados al PMOD JC
+#
+set_property -dict { PACKAGE_PIN K17 IOSTANDARD LVCMOS33 } [get_ports speaker];    # JC1
 
 #
 # Pines conectados al display 7 segmentos
@@ -49,3 +58,8 @@ set_property -dict { PACKAGE_PIN U2 IOSTANDARD LVCMOS33 } [get_ports {an_n[0]}];
 set_property -dict { PACKAGE_PIN U4 IOSTANDARD LVCMOS33 } [get_ports {an_n[1]}];
 set_property -dict { PACKAGE_PIN V4 IOSTANDARD LVCMOS33 } [get_ports {an_n[2]}];
 set_property -dict { PACKAGE_PIN W4 IOSTANDARD LVCMOS33 } [get_ports {an_n[3]}];
+
+
+
+
+

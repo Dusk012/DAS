@@ -4,14 +4,14 @@
 --    lab3.vhd  12/09/2023
 --
 --    (c) J.M. Mendias
---    Diseï¿½o Automï¿½tico de Sistemas
---    Facultad de Informï¿½tica. Universidad Complutense de Madrid
+--    Dise?o Autom¨¢tico de Sistemas
+--    Facultad de Inform¨¢tica. Universidad Complutense de Madrid
 --
---  Propï¿½sito:
+--  Prop¨®sito:
 --    Laboratorio 3
 --
---  Notas de diseï¿½o:
---    Versiï¿½n corregida.
+--  Notas de dise?o:
+--    Versi¨®n corregida.
 --
 ---------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ architecture syn of lab3 is
   signal credit : unsigned(3 downto 0) := (others => '0');
   signal reel   : reelType             := (others => (others => '0'));
 
-  -- Seï¿½ales 
+  -- Se?ales 
   signal clk, rdy : std_logic;
   signal rstSync, rstAux : std_logic;
   signal coinSync, coinDeb, coinRise : std_logic;
@@ -57,6 +57,14 @@ architecture syn of lab3 is
   signal spin : std_logic_vector(2 downto 0);
   signal decCredit, incCredit, hasCredit : std_logic;
   signal cycleCntTC : std_logic;  
+
+  -- Tipos para la m¨¢quina de estados
+  type states is (initial, S1, S2, S3, reward);
+  signal state : states;   -- se?al que reemplaza a la variable
+
+  -- Constante y se?al para el contador de ciclos
+  constant CYCLES : natural := ms2cycles(FREQ_KHZ, 50);
+  signal count : natural range 0 to CYCLES-1 := 0;  -- se?al que reemplaza a la variable
 
 begin
 
@@ -77,12 +85,12 @@ begin
     port map ( clk => clk, x => coin, xSync => coinSync );
    
   coinDebouncer : debouncer
-    generic map ( FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS )
-    port map ( clk => clk, x => coinSync, xDeb => coinDeb );
+    generic map ( FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0' )
+    port map ( clk => clk, rst => rstAux ,x => coinSync, xDeb => coinDeb );
    
   coinEdgeDetector : edgeDetector
-    port map ( clk => clk, x => coinDeb, rising => coinRise, falling => open );
-  
+    generic map (XPOL => '0')
+    port map ( clk => clk, x => coinDeb, xRise => coinRise, xFall => open );
   ------------------  
 
   goSynchronizer : synchronizer
@@ -90,18 +98,17 @@ begin
     port map ( clk => clk, x => go, xSync => goSync );
    
   goDebouncer : debouncer
-    generic map ( FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS )
-    port map ( clk => clk, x => goSync, xDeb => goDeb );
+    generic map ( FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0' )
+    port map ( clk => clk, rst => rstAux ,x => goSync, xDeb => goDeb );
    
   goEdgeDetector : edgeDetector
-    port map ( clk => clk, x => goDeb, rising => goRise, falling => open );
+    generic map (XPOL => '0')
+    port map ( clk => clk, x => goDeb, xRise => goRise, xFall => open );
   
   ------------------  
  
   fsm:
-  process (rstSync, clk, goRise, hasCredit)
-    type states is (initial, S1, S2, S3, reward); 
-    variable state: states := initial;
+  process (rstSync, clk)
   begin 
     -- Valores por defecto
     decCredit <= '0';
@@ -123,44 +130,42 @@ begin
     end case;
     
     if rstSync='1' then
-      state := initial;
+      state <= initial;
     elsif rising_edge(clk) then
       case state is
         when initial =>
           if goRise='1' and hasCredit='1' then
-            decCredit <= '1';   -- Decrementar crï¿½dito al iniciar giro
-            state := S1;
+            decCredit <= '1';   -- Decrementar cr¨¦dito al iniciar giro
+            state <= S1;
           end if;
         when S1 =>
           if goRise='1' then
-            state := S2;
+            state <= S2;
           end if;
         when S2 =>
           if goRise='1' then
-            state := S3;
+            state <= S3;
           end if;
         when S3 =>
           if goRise='1' then
-            state := reward;
+            state <= reward;
           end if;
         when reward =>
-          state := initial;
+          state <= initial;
       end case;
     end if;
   end process;  
   
   cycleCounter :  
   process (clk)
-    constant CYCLES : natural := ms2cycles(FREQ_KHZ, 50);
-    variable count  : natural range 0 to CYCLES-1 := 0;
   begin
     cycleCntTC <= '0';
     if rising_edge(clk) then
       if count = CYCLES-1 then
-        count := 0;
+        count <= 0;
         cycleCntTC <= '1';
       else
-        count := count + 1;
+        count <= count + 1;
       end if;
     end if;
   end process;
@@ -208,9 +213,8 @@ begin
     port map ( 
       clk   => clk,
       ens   => (others => '1'),
-      bins  => std_logic_vector(credit) & std_logic_vector(reel(2)) & 
-               std_logic_vector(reel(1)) & std_logic_vector(reel(0)), -- Crï¿½dito a la izquierda
-      dps   => "0001",  -- Punto entre crï¿½dito y rodillos (ajustar segï¿½n conexionado)
+      bins  => std_logic_vector(credit) & std_logic_vector(reel(2)) & std_logic_vector(reel(1)) & std_logic_vector(reel(0)), 
+      dps   => "1000",  
       an_n  => an_n,
       segs_n => segs_n
     );
