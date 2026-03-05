@@ -55,11 +55,11 @@ architecture syn of lab4 is
   signal count       : natural := 0;  -- contador para ciclo de nota
 
   -- Descomentar para instrumentar el dise�o
-  -- attribute mark_debug : string;
-  -- attribute mark_debug of ps2Clk  : signal is "true";
-  -- attribute mark_debug of ps2Data : signal is "true";
-  -- attribute mark_debug of dataRdy : signal is "true";
-  -- attribute mark_debug of data    : signal is "true";
+  attribute mark_debug : string;
+  attribute mark_debug of ps2Clk  : signal is "true"; 
+  attribute mark_debug of ps2Data : signal is "true";
+  attribute mark_debug of dataRdy : signal is "true";
+  attribute mark_debug of data    : signal is "true";
 
   type states is (S0, S1, S2, S3);
   signal current_state, next_state : states;
@@ -124,6 +124,7 @@ begin
           end if;
         else
           count <= 0;  -- detener contador cuando no hay sonido
+          speakerTFF <= '0';
         end if;
       end if;
     end if;
@@ -140,15 +141,16 @@ begin
     case current_state is
       when S0 =>
        if dataRdy = '1' then
-        if data = X"AA then
+        if data = X"AA" then
           next_state <= S0;
-        elsif data = X"F0 then
+        elsif data = X"F0" then
           next_state <= S3;
-        else
+        elsif data /= X"F0" then
           next_state <= S1;
-          ldCode =' 1';
+          ldCode <='1';
        else
           next_state <= S0;
+        end if;
        end if;
 
       when S1 =>
@@ -169,6 +171,7 @@ begin
           if data = code then
             next_state <= S0;
           else
+            --ldCode <= '1'; 
             next_state <= S1;
           end if;
         else
@@ -202,8 +205,8 @@ begin
     generic map (FREQ_KHZ => FREQ_KHZ, SIZE => 4)
     port map (
       clk    => clk,
-      ens    => "0011",                -- habilita los dos dígitos de la derecha
-      bins   => X"00" & code,          -- code en los dos dígitos derechos
+      ens    => "0110",     
+      bins   => "0000" & code & "0000",          -- code en los dos dígitos derechos
       dps    => "0000",                 -- sin puntos decimales
       an_n   => an_n,
       segs_n => segs_n

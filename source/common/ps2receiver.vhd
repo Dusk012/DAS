@@ -63,7 +63,7 @@ begin
   process (clk)
   begin
     if rising_edge(clk) then
-      if rst = '1' or lastBit then
+      if rst = '1' or lastBit = '1' then
         ps2DataShf <= (others => '1');
       elsif ps2ClkFall = '1' then
         ps2DataShf <= ps2DataSync & ps2DataShf(10 downto 1);
@@ -82,7 +82,7 @@ begin
   end process;
 
   lastBitCheker :
-  lastBit <= not ps2DataShf(0);  
+  lastBit <= ps2DataShf(10) and not ps2DataShf(0);  
    
  outputRegisters :
   process (clk)

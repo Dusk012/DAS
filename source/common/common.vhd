@@ -141,6 +141,19 @@ component segsBankRefresher
     segs_n : out std_logic_vector (7 downto 0)          -- c�digo 7 segmentos 
   );
 end component;
+
+component ps2receiver is
+  port (
+    -- host side
+    clk        : in  std_logic;   -- reloj del sistema
+    rst        : in  std_logic;   -- reset s�ncrono del sistema      
+    dataRdy    : out std_logic;   -- se activa durante 1 ciclo cada vez que hay un nuevo dato recibido
+    data       : out std_logic_vector (7 downto 0);  -- dato recibido
+    -- PS2 side
+    ps2Clk     : in  std_logic;   -- entrada de reloj del interfaz PS2
+    ps2Data    : in  std_logic    -- entrada de datos serie del interfaz PS2
+  );
+end component;
  
 end package common;
 
