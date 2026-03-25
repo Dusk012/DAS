@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 entity rs232recController is
   port (
     clk          : in  std_logic;                    -- reloj del sistema
-    rst          : in  std_logic;                    -- reset síncrono
+    rst          : in  std_logic;                    -- reset s铆ncrono
     RxDSync      : in  std_logic;                    -- RxD sincronizado
     readRxD      : in  std_logic;                    -- pulso de muestreo (mitad de bit)
     bitPosCntTC  : in  std_logic;                    -- fin de cuenta (bit 10 alcanzado)
@@ -14,7 +14,7 @@ entity rs232recController is
 end rs232recController;
 
 architecture Behavioral of rs232recController is
-  type state_t is (IDLE, START, RECEIVE, STOP);
+  type state_t is (IDLE, RECEIVE, FINAL);
   signal state, next_state : state_t;
 
   signal ctrl : std_logic_vector(2 downto 0);
@@ -42,11 +42,12 @@ begin
     baudCntCE    <= '0';
     bitPosCntCE <= '0';
     dataRdy      <= '0';
+    RxDShfSH <= '0';
     next_state   <= state;
 
     case state is
       when IDLE =>
-        if RxDSync = '0' then               -- detección de flanco de bajada (inicio de start)
+        if RxDSync = '0' then               -- detecci贸n de flanco de bajada (inicio de start)
           bitPosCntCE <= '1';                -- reset del contador de bits
           next_state  <= RECEIVE;
         end if;
@@ -56,13 +57,15 @@ begin
         if readRxD = '1' then
             RxDShfSH <= '1';
             bitPosCntCE <= '1';
-
-          if bitPosCntTC = '1' then         -- se ha recibido el último bit (stop)
-            next_state <= IDLE;
-            dataRdy   <= '1';  
-            bitPosCntCE <= '1'; 
+          if bitPosCntTC = '1' then         -- se ha recibido el 煤ltimo bit (stop)
+            next_state <= FINAL;
           end if;
         end if;
+      
+       when FINAL =>
+            --baudCntCE <= '1';
+            dataRdy   <= '1';
+            next_state <= IDLE;
     end case;
   end process;
 end Behavioral;

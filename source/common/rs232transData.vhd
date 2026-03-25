@@ -1,6 +1,6 @@
 -------------------------------------------------------------------
 -- Ruta de datos del transmisor RS-232
--- (solo señales std_logic y std_logic_vector, sin integer)
+-- (solo se帽ales std_logic y std_logic_vector, sin integer)
 -------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -9,7 +9,7 @@ use ieee.numeric_std.all;
 entity rs232transDatapath is
   generic (
     FREQ_KHZ : natural;  -- frecuencia del sistema en KHz
-    BAUDRATE : natural   -- velocidad de comunicación en baudios
+    BAUDRATE : natural   -- velocidad de comunicaci贸n en baudios
   );
   port (
     clk          : in  std_logic;
@@ -18,17 +18,17 @@ entity rs232transDatapath is
     data         : in  std_logic_vector(7 downto 0);  -- dato a transmitir
     writeTxD     : out std_logic;                      -- pulso de bit (tick)
     bitPosCntTC  : out std_logic;                      -- fin de cuenta 
-    TxD          : out std_logic;                       -- línea serie
+    TxD          : out std_logic                       -- l铆nea serie
   );
 end rs232transDatapath;
 
 architecture Behavioral of rs232transDatapath is
   constant CYCLES_PER_BIT : natural := (FREQ_KHZ * 1000) / BAUDRATE;
-  constant BAUD_CNT_WIDTH : natural := 16;
+  --constant HALF_CYCLE     : natural := CYCLES_PER_BIT / 2;
+  constant BAUD_CNT_WIDTH : natural := 32;
 
   signal baud_counter : unsigned(BAUD_CNT_WIDTH-1 downto 0) := (others => '0');
-  signal writeTxD_int : std_logic;
-  signal shift_reg    : std_logic_vector(9 downto 0) := (others => '1');
+  signal shift_reg    : std_logic_vector(9 downto 0) := (others => '0');
   signal bit_counter  : unsigned(3 downto 0) := (others => '0');  -- 4 bits para 0..10
 
   signal ctrl: std_logic_vector(3 downto 0);
@@ -55,8 +55,7 @@ begin
     end if;
   end process;
 
-  writeTxD_int <= '1' when (baudCntCE = '1' and baud_counter = CYCLES_PER_BIT - 1) else '0';
-  writeTxD     <= writeTxD_int;
+  writeTxD <= '1' when (baudCntCE = '1' and baud_counter = CYCLES_PER_BIT - 1) else '0';
 
   -- Registro de desplazamiento
   RSHIFTER : process(clk)
@@ -76,7 +75,7 @@ begin
 
   TxD <= shift_reg(0);
 
-  -- Contador de estados (módulo 11: 0..10)
+  -- Contador de estados (m贸dulo 11: 0..10)
   bitPosCnt : process(clk)
   begin
     if rising_edge(clk) then
@@ -104,6 +103,6 @@ begin
       --end if;
     --end if;
   --end process;
-  bitPosCntTC <= '1' when bit_counter = 10 else '0';
+  bitPosCntTC <= '1' when bit_counter = 10 and bitPosCntCE = '1' else '0';
 
 end Behavioral;

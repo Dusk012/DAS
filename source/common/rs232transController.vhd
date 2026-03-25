@@ -4,11 +4,11 @@ use ieee.std_logic_1164.all;
 entity rs232transController is
   port (
     clk          : in  std_logic;                    -- reloj del sistema
-    rst          : in  std_logic;                    -- reset síncrono
-    dataRdy      : in  std_logic;                    -- petición de envío
+    rst          : in  std_logic;                    -- reset s铆ncrono
+    dataRdy      : in  std_logic;                    -- petici贸n de env铆o
     writeTxD         : in  std_logic;                    -- pulso de bit (desde el contador de baudios)
     bitPosCntTC  : in  std_logic;                    -- fin de cuenta del contador de bits (bit 9)
-    datapath     : out std_logic_vector(3 downto 0);  -- señales de control
+    datapath     : out std_logic_vector(3 downto 0);  -- se帽ales de control
     busy         : out  std_logic 
   );
 end rs232transController;
@@ -24,7 +24,7 @@ architecture Behavioral of rs232transController is
   alias bitPosCntCE : std_logic is ctrl(3); -- habilita el contador de bits
 begin
 
-  datapath <= ctrl;  -- Asignación de las señales de control a la salida
+  datapath <= ctrl;  -- Asignaci贸n de las se帽ales de control a la salida
 
 
   -- Registro de estado
@@ -39,7 +39,7 @@ begin
     end if;
   end process;
 
-  -- Lógica combinacional de siguiente estado y salidas
+  -- L贸gica combinacional de siguiente estado y salidas
   comb_process : process(state, dataRdy, writeTxD, bitPosCntTC)
   begin
     -- Valores por defecto
@@ -64,7 +64,7 @@ begin
         if writeTxD = '1' then
           bitPosCntCE <= '1';             -- mantiene habilitado el contador de bits
           TxDShfSH <= '1';              -- desplaza en cada writeTxD
-          if bitPosCntTC = '1' then     -- si es el último bit, termina
+          if bitPosCntTC = '1' then     -- si es el 煤ltimo bit, termina
             next_state <= IDLE;
           end if;
         end if;
