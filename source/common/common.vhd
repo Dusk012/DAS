@@ -205,6 +205,32 @@ component fifoQueue is
     empty   : out std_logic    -- indicador de fifo vacia
   );
 end component;
+
+component vgaTextInterface is
+  generic(
+    FREQ_DIV : natural;  -- valor por el que dividir la frecuencia del reloj del sistema para obtener 25 MHz
+    BGCOLOR  : std_logic_vector (11 downto 0); -- color del background
+    FGCOLOR  : std_logic_vector (11 downto 0)  -- color del foreground
+  );
+  port ( 
+    -- host side
+    clk     : in std_logic;   -- reloj del sistema
+    clear   : in std_logic;   -- borra la memoria de refresco
+    dataRdy : in std_logic;   -- se activa durante 1 ciclo cada vez que hay un nuevo caracter a visualizar
+    char    : in std_logic_vector (7 downto 0);   -- codigo ASCII del caracter a visualizar
+    x       : in std_logic_vector (6 downto 0);   -- columna en donde visualizar el caracter
+    y       : in std_logic_vector (4 downto 0);   -- fila en donde visualizar el caracter
+    --
+    col     : out std_logic_vector (6 downto 0);   -- numero de columna que se esta barriendo
+    uCol    : out std_logic_vector (2 downto 0);   -- numero de microcolumna que se esta barriendo
+    row     : out std_logic_vector (4 downto 0);   -- numero de fila que se esta barriendo
+    uRow    : out std_logic_vector (3 downto 0);   -- numero de microfila que se esta barriendo
+    -- VGA side
+    hSync  : out std_logic;   -- sincronizacion horizontal
+    vSync  : out std_logic;   -- sincronizacion vertical
+    RGB    : out std_logic_vector (11 downto 0)   -- canales de color
+  );
+end component;
 end package common;
 
 -------------------------------------------------------------------

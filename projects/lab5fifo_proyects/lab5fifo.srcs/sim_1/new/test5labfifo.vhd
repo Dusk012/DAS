@@ -1,0 +1,180 @@
+---------------------------------------------------------------------
+-- Testbench para el sistema lab5fifo (receptor + FIFO + transmisor)
+---------------------------------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity lab5fifo_tb is
+end lab5fifo_tb;
+
+architecture bench of lab5fifo_tb is
+
+  -- Componente a testear (dise?o principal)
+  component lab5
+    port (
+      clk    : in  std_logic;
+      rst    : in  std_logic;
+      RxD    : in  std_logic;
+      TxD    : out std_logic;
+      TxEn   : in  std_logic;
+      leds   : out std_logic_vector(15 downto 0);
+      an_n   : out std_logic_vector(3 downto 0);
+      segs_n : out std_logic_vector(7 downto 0)
+    );
+  end component;
+
+  -- Constantes de configuraci車n (seg迆n lab5fifo.vhd)
+  constant FREQ_KHZ : natural := 100000;          -- 100 MHz
+  constant BAUDRATE : natural := 1200;            -- 1200 baudios
+
+  -- Per赤odos de tiempo
+  constant clk_period  : time := 10 ns;           -- 100 MHz
+  constant baud_period : time := 833_334 ns;      -- 1/1200 s ＞ 833,33 ?s
+
+  -- Se?ales de interconexi車n
+  signal clk    : std_logic := '0';
+  signal rst    : std_logic := '0';
+  signal RxD    : std_logic := '1';               -- reposo
+  signal TxD    : std_logic;
+  signal TxEn   : std_logic := '0';
+  signal leds   : std_logic_vector(15 downto 0);
+  signal an_n   : std_logic_vector(3 downto 0);
+  signal segs_n : std_logic_vector(7 downto 0);
+
+  -----------------------------------------------------------------
+  -- Procedimiento para enviar un byte por la l赤nea RxD
+  -----------------------------------------------------------------
+  procedure send_rs232_byte (
+    constant byte_val : in std_logic_vector(7 downto 0);
+    signal rx_line    : out std_logic
+  ) is
+  begin
+    report "   [TB] Enviando bit START (0)";
+    rx_line <= '0';
+    wait for baud_period;
+
+    for i in 0 to 7 loop
+      report "   [TB] Enviando bit " & integer'image(i) & ": " & std_logic'image(byte_val(i));
+      rx_line <= byte_val(i);
+      wait for baud_period;
+    end loop;
+
+    report "   [TB] Enviando bit STOP (1)";
+    rx_line <= '1';
+    wait for baud_period;   -- espera el bit de stop completo
+  end procedure;
+
+  -----------------------------------------------------------------
+  -- Procedimiento para recibir un byte desde la l赤nea TxD
+  -----------------------------------------------------------------
+  procedure receive_rs232_byte (
+    signal tx_line    : in std_logic;
+    variable byte_val : out std_logic_vector(7 downto 0)
+  ) is
+  begin
+    -- Esperar el flanco de bajada (bit de START)
+    wait until falling_edge(tx_line);
+    report "   [TB] Detectado bit START";
+
+    -- Esperar hasta la mitad del per赤odo para muestrear
+    wait for baud_period / 2;
+
+    -- Leer los 8 bits de datos (LSB primero)
+    for i in 0 to 7 loop
+      wait for baud_period;   -- ir al centro del siguiente bit
+      byte_val(i) := tx_line;
+      report "   [TB] Muestreando bit " & integer'image(i) & ": " & std_logic'image(tx_line);
+    end loop;
+
+    -- Esperar a que termine el bit de STOP
+    wait for baud_period;
+  end procedure;
+
+begin
+
+  -- Instancia del dise?o principal
+  uut: lab5
+    port map (
+      clk    => clk,
+      rst    => rst,
+      RxD    => RxD,
+      TxD    => TxD,
+      TxEn   => TxEn,
+      leds   => leds,
+      an_n   => an_n,
+      segs_n => segs_n
+    );
+
+  -----------------------------------------------------------------
+  -- Generador de reloj
+  -----------------------------------------------------------------
+  clk_process : process
+  begin
+    clk <= '0';
+    wait for clk_period/2;
+    clk <= '1';
+    wait for clk_period/2;
+  end process;
+
+  -----------------------------------------------------------------
+  -- Proceso de est赤mulos
+  -----------------------------------------------------------------
+  stim_proc: process
+    variable rx_byte : std_logic_vector(7 downto 0);
+  begin
+    report "--- INICIANDO TEST DEL SISTEMA lab5fifo ---";
+    
+    -- Reset inicial
+    rst <= '1';
+    TxEn <= '1';
+    wait for 100 ns;
+    rst <= '0';
+    wait for 200 ns;
+
+    -- Enviar 3 bytes consecutivos por RxD
+    report "FASE 1: Enviando 0x41 ('A')";
+    send_rs232_byte(x"41", RxD);
+    wait for baud_period * 20;   -- tiempo de guarda
+
+    report "FASE 2: Enviando 0x5A ('Z')";
+    send_rs232_byte(x"5A", RxD);
+    wait for baud_period * 20;
+
+    report "FASE 3: Enviando 0x03 (ETX)";
+    send_rs232_byte(x"03", RxD);
+    wait for baud_period * 20;
+
+    -- Habilitar la transmisi車n (TxEn = '1')
+    report "Habilitando transmisi車n (TxEn = '0')";
+    TxEn <= '0';
+    wait for baud_period * 30;   -- esperar a que el transmisor empiece
+
+    -- Recibir y verificar los tres bytes en el mismo orden
+    report "Recibiendo primer byte (esperado 0x41)";
+    receive_rs232_byte(TxD, rx_byte);
+    assert rx_byte = x"41" report "ERROR: Primer byte recibido no es 0x41" severity failure;
+    report "OK: 0x41 recibido";
+
+    report "Recibiendo segundo byte (esperado 0x5A)";
+    receive_rs232_byte(TxD, rx_byte);
+    assert rx_byte = x"5A" report "ERROR: Segundo byte recibido no es 0x5A" severity failure;
+    report "OK: 0x5A recibido";
+
+    report "Recibiendo tercer byte (esperado 0x03)";
+    receive_rs232_byte(TxD, rx_byte);
+    assert rx_byte = x"03" report "ERROR: Tercer byte recibido no es 0x03" severity failure;
+    report "OK: 0x03 recibido";
+
+    -- Verificar que despu谷s de vaciar la FIFO la l赤nea TxD vuelve a '1'
+    wait for baud_period * 3;
+    assert TxD = '1' report "ERROR: TxD no est芍 en reposo tras la transmisi車n" severity warning;
+
+    report "-------------------------------------------------------";
+    report "--- TEST FINALIZADO CON ?XITO ---";
+    report "-------------------------------------------------------";
+
+    wait;  -- detener la simulaci車n
+  end process;
+
+end bench;

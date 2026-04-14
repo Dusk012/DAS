@@ -28,7 +28,7 @@ architecture Behavioral of rs232transDatapath is
   constant BAUD_CNT_WIDTH : natural := 32;
 
   signal baud_counter : unsigned(BAUD_CNT_WIDTH-1 downto 0) := (others => '0');
-  signal shift_reg    : std_logic_vector(9 downto 0) := (others => '0');
+  signal shift_reg    : std_logic_vector(9 downto 0) := (others => '1');
   signal bit_counter  : unsigned(3 downto 0) := (others => '0');  -- 4 bits para 0..10
 
   signal ctrl: std_logic_vector(3 downto 0);

@@ -47,12 +47,12 @@ architecture syn of lab5 is
   signal numData              : std_logic_vector(3 downto 0);
   signal en                   : std_logic;
   
-  attribute mark_debug : string;
-  attribute mark_debug of dataRx  : signal is "true";
-  attribute mark_debug of dataTx : signal is "true";
-  attribute mark_debug of dataRdyTx : signal is "true";
-  attribute mark_debug of dataRdyRx    : signal is "true";
-   attribute mark_debug of busy    : signal is "true";
+  --attribute mark_debug : string;
+  --attribute mark_debug of dataRx  : signal is "true";
+  --attribute mark_debug of dataTx : signal is "true";
+  --attribute mark_debug of dataRdyTx : signal is "true";
+  --attribute mark_debug of dataRdyRx    : signal is "true";
+   --attribute mark_debug of busy    : signal is "true";
   
   component fifo_generator_0 IS
   PORT (
