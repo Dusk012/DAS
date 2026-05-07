@@ -4,17 +4,12 @@
 --    vgaTextInterface.vhd  12/09/2023
 --  test
 --    (c) J.M. Mendias
---    DiseÃ±o AutomÃ¡tico de Sistemas
---    Facultad de InformÃ¡tica. Universidad Complutense de Madrid
+--    Dise?o Autom¨¢tico de Sistemas
+--    Facultad de Inform¨¢tica. Universidad Complutense de Madrid
 --
---  PropÃ³sito:
---    Genera las seÃ±ales de color y sincronismo de un interfaz texto
---    VGA con resoluciÃ³n de 80x30 caracteres de 8x16 pixeles.
---
---  Notas de diseÃ±o:
---    - Para frecuencias a partir de 50 Mhz en multiplos de 25 MHz
---    - Incluye una memoria de refresco para almacenar los caracteres
---      a visualizar y una memoria de mapas de bits de cada caracter 
+--  Prop¨®sito:
+--    Genera las se?ales de color y sincronismo de un interfaz texto
+--    VGA con resoluci¨®n de 80x30 caracteres de 8x16 pixeles.
 --
 ---------------------------------------------------------------------
 
@@ -55,9 +50,25 @@ use work.common.all;
 
 architecture syn of vgaTextInterface is
 
- 
+ component  vgaTextInterface_RAM IS
+  PORT (
+    clka : IN STD_LOGIC;
+    wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+    addra : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    dina : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+    clkb : IN STD_LOGIC;
+    addrb : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    doutb : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+  );
+ END component;
 
- 
+ component vgaTextInterface_ROM
+  PORT (
+    clka : IN STD_LOGIC;
+    addra : IN STD_LOGIC_VECTOR(11 DOWNTO 0);
+    douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+  );
+ END component;
 
   constant COLSxLINE  : natural := 80;
   constant ROWSxFRAME : natural := 30;
@@ -70,6 +81,11 @@ architecture syn of vgaTextInterface is
   signal uColInt  : std_logic_vector (2 downto 0);
   signal uRowInt  : std_logic_vector (3 downto 0);
   
+  -- SE?ALES NUEVAS DE RETARDO (DELAY) PARA SINCRONIZAR CON LAS BRAM
+  signal uColInt_d1 : std_logic_vector (2 downto 0);
+  signal uColInt_d2 : std_logic_vector (2 downto 0);
+  signal uRowInt_d1 : std_logic_vector (3 downto 0);
+  
   signal clearX : std_logic_vector(x'range) := (others => '0');
   signal clearY : std_logic_vector(y'range) := (others => '0');
   signal clearing : std_logic;
@@ -81,15 +97,9 @@ architecture syn of vgaTextInterface is
   signal we_vector : std_logic_vector(0 downto 0);
   signal asciiCode, ramWrData : std_logic_vector (7 downto 0);
   
-  type   ramType is array (0 to 2**(x'length+y'length)-1) of std_logic_vector (char'range);
-  signal ram : ramType;
-  
   signal romAddr     : std_logic_vector (11 downto 0);
   signal bitMapLine  : std_logic_vector (7 downto 0);
   signal bitMapPixel : std_logic;
-
-  type   romType is array (0 to 2**12-1) of std_logic_vector (7 downto 0);  -- OJO: los pixeles estÃ¡n ubicados de izq. a der. y da igual que se cambie el range
-  signal rom : romType := ();
 
 begin
   screenInteface: vgaRefresher
@@ -119,30 +129,34 @@ begin
   
 ------------------  
 
+  -- PROCESO DE SINCRONIZACI?N (Soluciona la imagen sucia)
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      -- Retrasamos uColInt 2 ciclos de reloj (1 ciclo por RAM + 1 ciclo por ROM)
+      uColInt_d1 <= uColInt;
+      uColInt_d2 <= uColInt_d1;
+      -- Retrasamos uRowInt 1 ciclo de reloj (1 ciclo por RAM)
+      uRowInt_d1 <= uRowInt;
+    end if;
+  end process;
+
+------------------  
+
  -- 1. Control de escritura
   we        <= '1' when (dataRdy = '1' or clearing = '1') else '0';
   we_vector(0) <= we;
-  -- 2. Dato a escribir (X"00" es el espacio en blanco/vacÃ­o)
+  
+ -- 2. Dato a escribir (X"00" es el espacio en blanco/vac¨ªo)
   ramWrData <= char when clearing = '0' else X"00";      
   
-  -- 3. DirecciÃ³n de escritura (concatenando y & x = 12 bits)
+ -- 3. Direcci¨®n de escritura (concatenando y & x = 12 bits)
   ramWrAddr <= y & x when clearing = '0' else clearY & clearX;
   
-  -- 4. DirecciÃ³n de lectura para el VGA
+ -- 4. Direcci¨®n de lectura para el VGA
   ramRdAddr <= rowInt & colInt;
   
-  -- El RAM ahora es una IP, ya no es necesario el proceso original
-  --process (clk)
-  --begin
-    --if rising_edge(clk) then
-      --if we='1' then
-        --ram( ... ) <= ...;
-      --end if; 
-      --asciiCode <= ram( ... );
-    --end if;
-  --end process;
-
-   RAM: entity work.vgaTextInterface_RAM is 
+   RAM:vgaTextInterface_RAM 
     port map(
       clka  => clk,
       wea   => we_vector,
@@ -155,17 +169,10 @@ begin
 
 ------------------  
   
-  romAddr <= asciiCode & uRowInt;
+  -- USAMOS LA SE?AL RETRASADA (uRowInt_d1) para alinearnos con el asciiCode
+  romAddr <= asciiCode & uRowInt_d1;
  
-  -- El ROM ahora es una IP, ya no es necesario el proceso original
-  --process (clk)
-  --begin
-    --if rising_edge(clk) then
-      --bitMapLine <= rom( ... ) ;
-    --end if;
-  --end process;
-
-  ROM: entity work.vgaTextInterface_ROM is
+  ROM: vgaTextInterface_ROM 
     port map(
       clka  => clk,
       addra => romAddr,
@@ -174,15 +181,16 @@ begin
 
 ------------------  
 
- with uColInt select
-   bitMapPixel <= bitMapLine(0) when "000",
-                  bitMapLine(1) when "001",
-                  bitMapLine(2) when "010",
-                  bitMapLine(3) when "011",
-                  bitMapLine(4) when "100",
-                  bitMapLine(5) when "101",
-                  bitMapLine(6) when "110",
-                  bitMapLine(7) when others;
+ -- USAMOS LA SE?AL RETRASADA (uColInt_d2) para alinearnos con bitMapLine
+ with uColInt_d2 select
+   bitMapPixel <= bitMapLine(7) when "000",
+                  bitMapLine(6) when "001",
+                  bitMapLine(5) when "010",
+                  bitMapLine(4) when "011",
+                  bitMapLine(3) when "100",
+                  bitMapLine(2) when "101",
+                  bitMapLine(1) when "110",
+                  bitMapLine(0) when others;
 
 color <= FGCOLOR when bitMapPixel = '1' else BGCOLOR;
   
@@ -210,6 +218,5 @@ begin
       end if;
    end if;
 end process;
-
 
 end syn;

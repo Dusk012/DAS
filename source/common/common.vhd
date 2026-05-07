@@ -231,6 +231,69 @@ component vgaTextInterface is
     RGB    : out std_logic_vector (11 downto 0)   -- canales de color
   );
 end component;
+
+component vgaRefresher is
+  generic(
+    FREQ_DIV  : natural  -- razon entre la frecuencia de reloj del sistema y 25 MHz
+  );
+  port ( 
+    -- host side
+    clk   : in  std_logic;   -- reloj del sistema
+    line  : out std_logic_vector(9 downto 0);   -- numero de linea que se esta barriendo
+    pixel : out std_logic_vector(9 downto 0);   -- numero de pixel que se esta barriendo
+    R     : in  std_logic_vector(3 downto 0);   -- intensidad roja del pixel que se esta barriendo
+    G     : in  std_logic_vector(3 downto 0);   -- intensidad verde del pixel que se esta barriendo
+    B     : in  std_logic_vector(3 downto 0);   -- intensidad azul del pixel que se esta barriendo
+    -- VGA side
+    hSync : out std_logic := '0';   -- sincronizacion horizontal
+    vSync : out std_logic := '0';   -- sincronizacion vertical
+    RGB   : out std_logic_vector(11 downto 0) := (others => '0')   -- canales de color
+  );
+end component;
+
+component ov7670programmer is
+  generic (
+    FREQ_KHZ : natural;                        -- frecuencia de operacion en KHz
+    BAUDRATE : natural;                        -- velocidad de comunicacion
+    DEV_ID   : std_logic_vector (6 downto 0)   -- direcci�n SCCB (7 bits) de la camara
+  );
+  port ( 
+    -- host side
+    clk  : in  std_logic;         -- reloj del sistema
+    rdy  : out std_logic;         -- indica si la programaci�n ha finalizado
+    -- SSCB side
+    sioc : out std_logic := '0';  -- reloj serie
+    siod : out std_logic := '0'   -- datos serie
+  );
+end component;
+
+component ov7670reader is
+  port ( 
+    -- host side
+    clk      : in  std_logic;  -- reloj del sistema    
+    rec      : in  std_logic;  -- captura video mientras esta activa
+    -- frame buffer side
+    y        : out std_logic_vector (8 downto 0);    -- coordenada vertical del pixel (0: arriba)
+    x        : out std_logic_vector (9 downto 0);    -- coordenada horizontal del pixel (0: izquierda)
+    dataRdy  : out std_logic;                        -- se activa durante 1 ciclo cada vez que ha recibido un nuevo pixel
+    data     : out std_logic_vector (11 downto 0);   -- color del pixel recibido
+    frameRdy : out std_logic;                        -- se activa durante 1 ciclo cada vez que ha recibido una nueva frame
+    -- ov7670 video side
+    pclk     : in  std_logic;                        -- reloj de pixel
+    cvSync   : in  std_logic;                        -- sincronizacion vertical
+    href     : in  std_logic;                        -- se activa durante la transmisi�n de un frame horizontal
+    cData    : in  std_logic_vector (7 downto 0)     -- muestra recibida del sensor de imagen   
+  );
+end component;
+
+component rgb2grey is
+  port (
+    -- camera side
+    rgb  : in std_logic_vector(11 downto 0);   -- color
+    -- screen side
+    grey : out std_logic_vector(3 downto 0)    -- gris
+  );
+end component;
 end package common;
 
 -------------------------------------------------------------------
